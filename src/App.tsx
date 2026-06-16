@@ -58,7 +58,7 @@ import {
   DriveVideoFile 
 } from "./lib/googleDrive";
 import { User as FirebaseUser } from "firebase/auth";
-import nomanProfileDefault from "./assets/images/profile_noman_1781606032064.jpg";
+const nomanProfileDefault = "https://lh3.googleusercontent.com/d/1bRWoDVHqQko2G3gCfVFgFkCQCY-ozvGz";
 
 // Academic & Brand icons represented beautifully using pure Tailwind and custom styles
 export default function App() {
