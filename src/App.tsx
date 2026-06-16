@@ -47,7 +47,8 @@ import {
   Loader2,
   Check,
   AlertTriangle,
-  FileVideo
+  FileVideo,
+  Lock
 } from "lucide-react";
 import { 
   initAuth, 
@@ -57,6 +58,7 @@ import {
   DriveVideoFile 
 } from "./lib/googleDrive";
 import { User as FirebaseUser } from "firebase/auth";
+import nomanProfileDefault from "./assets/images/profile_noman_1781606032064.jpg";
 
 // Academic & Brand icons represented beautifully using pure Tailwind and custom styles
 export default function App() {
@@ -122,6 +124,9 @@ export default function App() {
   const [driveSearchQuery, setDriveSearchQuery] = useState("");
   const [isAuthChecking, setIsAuthChecking] = useState(true);
   const [videoConfigMode, setVideoConfigMode] = useState<"drive" | "youtube">("drive");
+
+  // Determine if the authenticated user is the portfolio owner (Noman)
+  const isOwner = driveUser?.email === "noman102470@gmail.com";
 
   // Initialize Google Drive Auth
   useEffect(() => {
@@ -552,7 +557,7 @@ export default function App() {
                 <img src={profilePic} alt="Abdullah Al Noman" className="rounded-full w-full h-full object-cover" />
               ) : (
                 <img 
-                  src="https://images.unsplash.com/photo-1466692476868-aef1dfb1e7aa?w=300" 
+                  src={nomanProfileDefault} 
                   alt="Abdullah Al Noman" 
                   className="rounded-full w-full h-full object-cover" 
                   referrerPolicy="no-referrer"
@@ -600,6 +605,37 @@ export default function App() {
 
           {/* Connected Search Tool, Action button, and Profile Picture Corner Widget */}
           <div className="flex items-center space-x-3">
+            {/* Owner/Admin Lock Button */}
+            <button
+              type="button"
+              onClick={async () => {
+                if (driveUser) {
+                  await handleGoogleDriveSignOut();
+                } else {
+                  await handleGoogleDriveSignIn();
+                }
+              }}
+              title={driveUser ? `Logged in as ${driveUser.email}. Click to sign out.` : "Owner Admin Access"}
+              className={`p-2 py-1.5 sm:p-2.5 rounded-lg border text-xs transition-all flex items-center justify-center cursor-pointer ${
+                isOwner
+                  ? "bg-emerald-100/50 border-emerald-250 text-[#2A5C4A] hover:bg-emerald-100"
+                  : driveUser
+                    ? "bg-amber-50 border-amber-200 text-amber-700 hover:bg-amber-100"
+                    : "bg-white hover:bg-slate-50 border-slate-200 text-stone-500 hover:text-stone-700"
+              }`}
+            >
+              {isOwner ? (
+                <Check className="w-3.5 h-3.5 text-emerald-600" />
+              ) : driveUser ? (
+                <AlertTriangle className="w-3.5 h-3.5 text-amber-500" />
+              ) : (
+                <Lock className="w-3.5 h-3.5" />
+              )}
+              <span className="ml-1.5 text-[10px] font-mono font-bold tracking-tight uppercase hidden sm:inline">
+                {isOwner ? "Owner Mode" : driveUser ? "Guest Mode" : "Admin Login"}
+              </span>
+            </button>
+
             {/* Connected Search Tool / PhD Application Alert Pill */}
             <div className="hidden lg:block">
               <button
@@ -817,13 +853,15 @@ export default function App() {
                   </h2>
                 </div>
 
-                <button
-                  onClick={() => setShowAddActivity(!showAddActivity)}
-                  className="px-4 py-2 bg-emerald-50 hover:bg-emerald-100/80 border border-emerald-250 text-[#2A5C4A] rounded-xl font-heading text-xs font-bold uppercase tracking-wide transition-all self-start md:self-center cursor-pointer flex items-center space-x-1 shadow-2xs"
-                >
-                  <Plus className="w-3.5 h-3.5" />
-                  <span>Add Live Update</span>
-                </button>
+                {isOwner && (
+                  <button
+                    onClick={() => setShowAddActivity(!showAddActivity)}
+                    className="px-4 py-2 bg-emerald-50 hover:bg-emerald-100/80 border border-emerald-250 text-[#2A5C4A] rounded-xl font-heading text-xs font-bold uppercase tracking-wide transition-all self-start md:self-center cursor-pointer flex items-center space-x-1 shadow-2xs"
+                  >
+                    <Plus className="w-3.5 h-3.5" />
+                    <span>Add Live Update</span>
+                  </button>
+                )}
               </div>
 
               {/* Activity Add form overlay card */}
@@ -949,6 +987,27 @@ export default function App() {
               
               {/* Left Column for sticky section header */}
               <div className="lg:col-span-4 lg:sticky lg:top-24 h-fit space-y-6">
+                {/* Profile Photo Display Card with upload triggers */}
+                <div className="relative group/profile w-full max-w-[280px] aspect-square rounded-2xl overflow-hidden border border-slate-150 shadow-md bg-slate-100">
+                  <img 
+                    src={profilePic || nomanProfileDefault} 
+                    alt="Abdullah Al Noman" 
+                    className="w-full h-full object-cover transition-transform duration-500 group-hover/profile:scale-105"
+                    referrerPolicy="no-referrer"
+                  />
+                  {/* If they are owner, show a neat change photo overlay on hover */}
+                  {isOwner && (
+                    <button
+                      type="button"
+                      onClick={triggerFileSelector}
+                      className="absolute inset-0 bg-black/60 opacity-0 group-hover/profile:opacity-100 flex flex-col items-center justify-center text-white transition-opacity duration-200 cursor-pointer"
+                    >
+                      <Camera className="w-6 h-6 mb-1 text-emerald-400" />
+                      <span className="text-[10px] font-bold uppercase tracking-wider">Change Profile Photo</span>
+                    </button>
+                  )}
+                </div>
+
                 <div>
                   <div className="flex items-center space-x-2 text-[#3A7CA5] font-mono text-xs font-bold uppercase tracking-widest">
                     <User className="w-4 h-4 text-[#2A5C4A]" />
@@ -1174,16 +1233,18 @@ export default function App() {
                     </span>
                     
                     {/* Settings Switcher */}
-                    <button
-                      onClick={() => {
-                        setIsEditingVideo(!isEditingVideo);
-                        setTempVideoUrl(videoUrl);
-                      }}
-                      className="px-3 py-1 bg-slate-50 border border-slate-200 hover:border-[#2A5C4A] hover:bg-emerald-50 rounded-lg text-[10px] font-bold text-stone-700 hover:text-[#2A5C4A] transition-all flex items-center space-x-1 cursor-pointer"
-                    >
-                      <Sparkles className="w-3 h-3" />
-                      <span>{isEditingVideo ? "Cancel" : "Configure Video"}</span>
-                    </button>
+                    {isOwner && (
+                      <button
+                        onClick={() => {
+                          setIsEditingVideo(!isEditingVideo);
+                          setTempVideoUrl(videoUrl);
+                        }}
+                        className="px-3 py-1 bg-slate-50 border border-slate-200 hover:border-[#2A5C4A] hover:bg-emerald-50 rounded-lg text-[10px] font-bold text-stone-700 hover:text-[#2A5C4A] transition-all flex items-center space-x-1 cursor-pointer"
+                      >
+                        <Sparkles className="w-3 h-3" />
+                        <span>{isEditingVideo ? "Cancel" : "Configure Video"}</span>
+                      </button>
+                    )}
                   </div>
 
                   {/* Stateful Editor Panel */}
@@ -2257,16 +2318,18 @@ export default function App() {
                   ))}
                 </div>
 
-                {/* Empty section state or trigger adder */}
-                <div className="mt-16 text-center">
-                  <button
-                    onClick={() => setShowAddSpotModal(true)}
-                    className="px-6 py-3.5 bg-emerald-50 hover:bg-emerald-100/70 border border-emerald-250 text-[#2A5C4A] rounded-xl font-heading font-bold text-xs uppercase tracking-wide transition-all shadow-3xs hover:shadow-xs cursor-pointer inline-flex items-center space-x-2"
-                  >
-                    <Plus className="w-4 h-4 text-[#2A5C4A]" />
-                    <span>Add New Travelling Footprint</span>
-                  </button>
-                </div>
+                 {/* Empty section state or trigger adder */}
+                 {isOwner && (
+                   <div className="mt-16 text-center">
+                     <button
+                       onClick={() => setShowAddSpotModal(true)}
+                       className="px-6 py-3.5 bg-emerald-50 hover:bg-emerald-100/70 border border-emerald-250 text-[#2A5C4A] rounded-xl font-heading font-bold text-xs uppercase tracking-wide transition-all shadow-3xs hover:shadow-xs cursor-pointer inline-flex items-center space-x-2"
+                     >
+                       <Plus className="w-4 h-4 text-[#2A5C4A]" />
+                       <span>Add New Travelling Footprint</span>
+                     </button>
+                   </div>
+                 )}
 
               </div>
             </section>
